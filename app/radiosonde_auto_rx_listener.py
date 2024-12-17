@@ -10,8 +10,7 @@ class RadiosondeAutoRxListener:
     def __init__(self):
         self._settings = Settings.load_settings()
         self._last_altitude = 0
-        self._notification_send = False
-        self.sondes = {}
+        self._sondes = {}
 
 
     def start(self):
@@ -40,15 +39,18 @@ class RadiosondeAutoRxListener:
 
         range_km = self._settings.notification_thresholds.distance_km
         home = self._settings.listener_location.location_tuple
+
+        if self._sondes.get(model.callsign) is None:
+            self._sondes[model.callsign] = False
         
-        if self._is_descending(model.altitude) and self._is_below_threshold(model.altitude) and Utils.is_within_range(home, model.location_tuple, range_km) and self._notification_send: # sonde is falling
-            Utils.send_notification(packet)
-            self._notification_send = True
+        if self._is_descending(model.altitude) and self._is_below_threshold(model.altitude) and Utils.is_within_range(home, model.location_tuple, range_km) and self._sondes[model.callsign]: # sonde is falling
+            Utils.send_notification(model)
+            self._sondes[model.callsign] = True
         
         elif not self._is_descending(model.altitude) or not self._is_below_threshold(model.altitude) or not Utils.is_within_range(home, model.location_tuple, range_km):
-            self._notification_send = False
+            self._sondes[model.callsign] = False
 
-        self.last_altitude = model.altitude
+        self._last_altitude = model.altitude
 
     def _is_descending(self, sonde_altitude: float):
         return sonde_altitude < self._last_altitude
