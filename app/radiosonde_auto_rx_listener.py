@@ -45,7 +45,7 @@ class RadiosondeAutoRxListener:
             Utils.send_notification(packet)
             self._notification_send = True
         
-        elif not self._is_descending(sonde_altitude) not not self._is_below_threshold(sonde_altitude) or not Utils.is_within_range(home, sonde_position, range_km):
+        elif not self._is_descending(sonde_altitude) or not self._is_below_threshold(sonde_altitude) or not Utils.is_within_range(home, sonde_position, range_km):
             self._notification_send = False
 
         self.last_altitude = sonde_altitude
