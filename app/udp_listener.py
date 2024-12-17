@@ -1,6 +1,10 @@
 import asyncio
 import json
 import traceback
+import logging
+
+
+logger = logging.getLogger(__name__)
 
 
 class AsyncUDPListener:
@@ -32,14 +36,13 @@ class AsyncUDPListener:
                 if self.callback:
                     await self.callback(packet_dict)  # Run callback
         except Exception as e:
-            print(f"Error handling packet from {addr}: {e}")
-            traceback.print_exc()
+            logger.exception(e)
 
     async def listen(self):
         """
         Start listening for incoming UDP packets asynchronously.
         """
-        print(f"Listening for UDP packets on port {self.udp_port}...")
+        logger.debug(f"Listening for UDP packets on port {self.udp_port}...")
         self.running = True
 
         # Create the UDP server
@@ -55,7 +58,7 @@ class AsyncUDPListener:
         except asyncio.CancelledError:
             pass
         finally:
-            print("Closing UDP listener...")
+            logger.debug("Closing socket connection")
             transport.close()
 
     def stop(self):
