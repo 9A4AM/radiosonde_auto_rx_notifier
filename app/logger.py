@@ -39,13 +39,6 @@ def configure_logger(base_path: Path):
                 "encoding": "utf-8",
             },
         },
-        "loggers": {
-            "watchfiles.main": {
-                "level": "WARNING",  # Suppress DEBUG logs for watchfiles.main
-                "handlers": ["console"],  # Optionally include this for higher-level messages
-                "propagate": False,
-            },
-        },
         "root": {
             "level": "DEBUG",
             "handlers": ["console", "file"],
