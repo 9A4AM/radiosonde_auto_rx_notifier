@@ -1,5 +1,6 @@
 from udp_listener import UDPListener
 from settings import Settings
+from radiosonde_payload import RadiosondePayload
 from utils import Utils
 import math
 import time
@@ -35,23 +36,22 @@ class RadiosondeAutoRxListener:
 
     def handle_payload_summary(self, packet: dict):
         ''' Handle a 'Payload Summary' UDP broadcast message, supplied as a dict. '''
+        model = RadiosondePayload(**packet)
+
         range_km = self._settings.notification_thresholds.distance_km
         home = self._settings.listener_location.location_tuple
-
-        sonde_position = (packet.get('latitude', 0), packet.get('longitude', 0))
-        sonde_altitude = packet.get('altitude', 0)
         
-        if self._is_descending(sonde_altitude) and self._is_below_threshold(sonde_altitude) and Utils.is_within_range(home, sonde_position, range_km) and self._notification_send: # sonde is falling
+        if self._is_descending(model.altitude) and self._is_below_threshold(model.altitude) and Utils.is_within_range(home, model.location_tuple, range_km) and self._notification_send: # sonde is falling
             Utils.send_notification(packet)
             self._notification_send = True
         
-        elif not self._is_descending(sonde_altitude) or not self._is_below_threshold(sonde_altitude) or not Utils.is_within_range(home, sonde_position, range_km):
+        elif not self._is_descending(model.altitude) or not self._is_below_threshold(model.altitude) or not Utils.is_within_range(home, model.location_tuple, range_km):
             self._notification_send = False
 
-        self.last_altitude = sonde_altitude
+        self.last_altitude = model.altitude
 
     def _is_descending(self, sonde_altitude: float):
-        return sonde_altitude < self.last_altitude
+        return sonde_altitude < self._last_altitude
 
     def _is_below_threshold(self, sonde_altitude: float):
         return sonde_altitude < self._settings.notification_thresholds.altitude_meters

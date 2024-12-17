@@ -1,30 +1,17 @@
 import apprise
+from geopy import distance
 
 from settings import Settings
 
 
 class Utils:
     @staticmethod
-    def haversine(lat1, lon1, lat2, lon2):
-        # Convert degrees to radians
-        lat1, lon1, lat2, lon2 = map(math.radians, [lat1, lon1, lat2, lon2])
-        
-        # Haversine formula
-        dlat = lat2 - lat1
-        dlon = lon2 - lon1
-        a = math.sin(dlat / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2) ** 2
-        c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
-        
-        # Radius of Earth in kilometers
-        radius = 6371.0
-        
-        # Distance in kilometers
-        distance = radius * c
-        return distance
+    def get_distance(base_coordinates, sonde_coordinates):
+        return distance.distance(base_coordinates, sonde_coordinates).km
 
     @staticmethod
     def is_within_range(base_coordinates, sonde_coordinates, range_km):
-        distance = Utils.haversine(*base_coordinates, *sonde_coordinates)
+        distance = Utils.get_distance(base_coordinates, sonde_coordinates)
         return distance <= range_km
 
     @staticmethod
