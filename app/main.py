@@ -1,4 +1,4 @@
-from async_radiosonde_auto_rx_listener import AsyncRadiosondeAutoRxListener
+from radiosonde_auto_rx_listener import AsyncRadiosondeAutoRxListener
 
 import asyncio
 

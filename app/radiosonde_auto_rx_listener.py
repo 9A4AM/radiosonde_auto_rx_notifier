@@ -1,4 +1,4 @@
-from async_udp_listener import AsyncUDPListener
+from udp_listener import AsyncUDPListener
 from settings import Settings
 from utils import Utils
 import math
@@ -43,7 +43,7 @@ class AsyncRadiosondeAutoRxListener:
             }
         
         if self._is_descending(model.altitude) and self._is_below_threshold(model.altitude) and Utils.is_within_range(home, model.location_tuple, range_km) and self._sondes[model.callsign]['notify']: # sonde is falling
-            Utils.send_notification(model)
+            await Utils.send_notification(model)
             self._sondes[model.callsign]['notify'] = True
         
         elif not self._is_descending(model.altitude) or not self._is_below_threshold(model.altitude) or not Utils.is_within_range(home, model.location_tuple, range_km):
