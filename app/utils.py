@@ -1,5 +1,6 @@
 import apprise
 from geopy import distance
+import asyncio
 
 from radiosonde_payload import RadiosondePayload
 from settings import Settings
@@ -16,7 +17,7 @@ class Utils:
         return distance <= range_km
 
     @staticmethod
-    def send_notification(packet: RadiosondePayload):
+    async def send_notification(packet: RadiosondePayload):
         settings = Settings.load_settings()
 
         apobj = apprise.Apprise()
@@ -36,7 +37,4 @@ Click the link to view the location on Google Maps: https://www.google.com/maps?
 """
 
         # notify all of the services loaded into our Apprise object.
-        apobj.notify(
-            body=message_body,
-            title='🚨 Radiosonde Alert 🚨',
-        )
+        await asyncio.to_thread(apobj.notify, body=message_body, title='🚨 Radiosonde Alert 🚨')
