@@ -60,7 +60,7 @@ class AsyncRadiosondeAutoRxListener:
             }
             logger.info(f"New radiosonde detected: {model.callsign}.")
         
-        if self._is_descending(model.altitude, model) and self._is_below_threshold(model.altitude, model) and Utils.is_within_range(home, model.location_tuple, range_km) and self._sondes[model.callsign]['notify']: # sonde is falling
+        if self._is_descending(model.altitude, model) and self._is_below_threshold(model.altitude, model) and Utils.is_within_range(home, model.location_tuple, range_km) and not self._sondes[model.callsign]['notify']: # sonde is falling
             await Utils.send_notification(model)
             self._sondes[model.callsign]['notify'] = True
             logger.debug(f"Radiosonde {model.callsign} is descending, within range, and below altitude threshold. Sending notification.")
