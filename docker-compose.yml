@@ -1,0 +1,12 @@
+services:
+  radiosonde_auto_rx_notifier:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: radiosonde_auto_rx_notifier
+    network_mode: host
+    volumes:
+      - ./data:/code/data
+    environment:
+      - UID=1000
+      - GID=1000

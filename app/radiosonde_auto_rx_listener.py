@@ -1,5 +1,6 @@
 from udp_listener import AsyncUDPListener
 from settings import Settings
+from radiosonde_payload import RadiosondePayload
 from utils import Utils
 import math
 import asyncio
@@ -42,17 +43,17 @@ class AsyncRadiosondeAutoRxListener:
                 "altitude": 0
             }
         
-        if self._is_descending(model.altitude) and self._is_below_threshold(model.altitude) and Utils.is_within_range(home, model.location_tuple, range_km) and self._sondes[model.callsign]['notify']: # sonde is falling
+        if self._is_descending(model.altitude, model) and self._is_below_threshold(model.altitude, model) and Utils.is_within_range(home, model.location_tuple, range_km) and self._sondes[model.callsign]['notify']: # sonde is falling
             await Utils.send_notification(model)
             self._sondes[model.callsign]['notify'] = True
         
-        elif not self._is_descending(model.altitude) or not self._is_below_threshold(model.altitude) or not Utils.is_within_range(home, model.location_tuple, range_km):
+        elif not self._is_descending(model.altitude, model) or not self._is_below_threshold(model.altitude, model) or not Utils.is_within_range(home, model.location_tuple, range_km):
             self._sondes[model.callsign]['notify'] = False
 
         self._sondes[model.callsign]['altitude'] = model.altitude
 
-    def _is_descending(self, sonde_altitude: float):
+    def _is_descending(self, sonde_altitude: float, model: RadiosondePayload):
         return sonde_altitude < self._sondes[model.callsign]['altitude']
 
-    def _is_below_threshold(self, sonde_altitude: float):
+    def _is_below_threshold(self, sonde_altitude: float, model: RadiosondePayload):
         return sonde_altitude < self._settings.notification_thresholds.altitude_meters
