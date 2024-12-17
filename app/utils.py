@@ -1,34 +1,23 @@
 import apprise
+from geopy import distance
+import asyncio
 
+from radiosonde_payload import RadiosondePayload
 from settings import Settings
 
 
 class Utils:
     @staticmethod
-    def haversine(lat1, lon1, lat2, lon2):
-        # Convert degrees to radians
-        lat1, lon1, lat2, lon2 = map(math.radians, [lat1, lon1, lat2, lon2])
-        
-        # Haversine formula
-        dlat = lat2 - lat1
-        dlon = lon2 - lon1
-        a = math.sin(dlat / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2) ** 2
-        c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
-        
-        # Radius of Earth in kilometers
-        radius = 6371.0
-        
-        # Distance in kilometers
-        distance = radius * c
-        return distance
+    def get_distance(base_coordinates, sonde_coordinates):
+        return distance.distance(base_coordinates, sonde_coordinates).km
 
     @staticmethod
     def is_within_range(base_coordinates, sonde_coordinates, range_km):
-        distance = Utils.haversine(*base_coordinates, *sonde_coordinates)
+        distance = Utils.get_distance(base_coordinates, sonde_coordinates)
         return distance <= range_km
 
     @staticmethod
-    def send_notification(packet: dict):
+    async def send_notification(packet: RadiosondePayload):
         settings = Settings.load_settings()
 
         apobj = apprise.Apprise()
@@ -38,18 +27,14 @@ class Utils:
                 apobj.add(service.url)
         
         message_body = f"""
-Callsign: TEST123
-Location: 40.7128, -74.0060
-Altitude: 500 meters
-Distance from Listener: 15.0 km
-Timestamp: 2024-12-17 12:30:00
+Callsign: {packet.callsign}
+Location: {packet.latitude}, {packet.longitude}
+Altitude: {packet.altitude} meters
+Distance from Listener: {round(Utils.get_distance(settings.listener_location.location_tuple, packet.location_tuple), 2)} km
 
-The radiosonde is within 20 km and below 1000 meters altitude.
-Click the link to view the location on Google Maps: https://www.google.com/maps?q=40.7128,-74.0060
+The radiosonde is within {settings.notification_thresholds.distance_km} km and below {settings.notification_thresholds.altitude_meters} meters altitude.
+Click the link to view the location on Google Maps: https://www.google.com/maps?q={packet.latitude},{packet.longitude}
 """
 
         # notify all of the services loaded into our Apprise object.
-        apobj.notify(
-            body=message_body,
-            title='🚨 Radiosonde Alert 🚨',
-        )
+        await asyncio.to_thread(apobj.notify, body=message_body, title='🚨 Radiosonde Alert 🚨')

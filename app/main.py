@@ -1,6 +1,8 @@
-from radiosonde_auto_rx_listener import RadiosondeAutoRxListener
+from radiosonde_auto_rx_listener import AsyncRadiosondeAutoRxListener
+
+import asyncio
 
 
 if __name__ == "__main__":
-    listener = RadiosondeAutoRxListener()
-    listener.start()
+    listener = AsyncRadiosondeAutoRxListener()
+    asyncio.run(listener.start())

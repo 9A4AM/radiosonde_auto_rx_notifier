@@ -1,57 +1,58 @@
-from udp_listener import UDPListener
+from udp_listener import AsyncUDPListener
 from settings import Settings
 from utils import Utils
 import math
-import time
+import asyncio
 
 
-class RadiosondeAutoRxListener:
+class AsyncRadiosondeAutoRxListener:
     def __init__(self):
         self._settings = Settings.load_settings()
-        self._last_altitude = 0
-        self._notification_send = False
-        self.sondes = {}
+        self._sondes = {}
 
 
-    def start(self):
+    async def start(self):
         # Instantiate the UDP listener.
-        udp_rx = UDPListener(
-            port=self._settings.udp_broadcast.listen_port,
-            callback = self.handle_payload_summary
-            )
-        # and start it
-        udp_rx.start()
+        udp_listener = AsyncUDPListener(callback=self.handle_payload_summary, port=55673)
+
+        # Start the UDP listener
+        listener_task = asyncio.create_task(udp_listener.listen())
+
 
         # From here, everything happens in the callback function above.
         try:
-            while True:
-                time.sleep(1)
+            await listener_task
         # Catch CTRL+C nicely.
         except KeyboardInterrupt:
             # Close UDP listener.
-            udp_rx.close()
+            udp_listener.close()
             print("Closing.")
 
 
-    def handle_payload_summary(self, packet: dict):
+    async def handle_payload_summary(self, packet: dict):
         ''' Handle a 'Payload Summary' UDP broadcast message, supplied as a dict. '''
+        model = RadiosondePayload(**packet)
+
         range_km = self._settings.notification_thresholds.distance_km
         home = self._settings.listener_location.location_tuple
 
-        sonde_position = (packet.get('latitude', 0), packet.get('longitude', 0))
-        sonde_altitude = packet.get('altitude', 0)
+        if self._sondes.get(model.callsign) is None:
+            self._sondes[model.callsign] = {
+                "notify": False,
+                "altitude": 0
+            }
         
-        if self._is_descending(sonde_altitude) and self._is_below_threshold(sonde_altitude) and Utils.is_within_range(home, sonde_position, range_km) and self._notification_send: # sonde is falling
-            Utils.send_notification(packet)
-            self._notification_send = True
+        if self._is_descending(model.altitude) and self._is_below_threshold(model.altitude) and Utils.is_within_range(home, model.location_tuple, range_km) and self._sondes[model.callsign]['notify']: # sonde is falling
+            await Utils.send_notification(model)
+            self._sondes[model.callsign]['notify'] = True
         
-        elif not self._is_descending(sonde_altitude) not not self._is_below_threshold(sonde_altitude) or not Utils.is_within_range(home, sonde_position, range_km):
-            self._notification_send = False
+        elif not self._is_descending(model.altitude) or not self._is_below_threshold(model.altitude) or not Utils.is_within_range(home, model.location_tuple, range_km):
+            self._sondes[model.callsign]['notify'] = False
 
-        self.last_altitude = sonde_altitude
+        self._sondes[model.callsign]['altitude'] = model.altitude
 
     def _is_descending(self, sonde_altitude: float):
-        return sonde_altitude < self.last_altitude
+        return sonde_altitude < self._sondes[model.callsign]['altitude']
 
     def _is_below_threshold(self, sonde_altitude: float):
         return sonde_altitude < self._settings.notification_thresholds.altitude_meters

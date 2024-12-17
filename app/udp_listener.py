@@ -1,109 +1,80 @@
-#!/usr/bin/env python
-#
-#   radiosonde_auto_rx - 'Horus UDP' Receiver Example
-#
-#   Copyright (C) 2019  Mark Jessop <vk5qi@rfhead.net>
-#   Released under GNU GPL v3 or later
-#
-#   This code provides an example of how the Horus UDP packets emitted by auto_rx can be received
-#   using Python. Horus UDP packets are simply JSON blobs, which all must at the very least contain a 'type' field, which
-#   (as the name suggests) indicates the packet type. auto_rx emits packets of type 'PAYLOAD_SUMMARY', which contain a summary
-#   of payload telemetry information (latitude, longitude, altitude, callsign, etc...)
-#
-#   Output of Horus UDP packets is enabled using the payload_summary_enabled option in the config file.
-#   See here for information: https://github.com/projecthorus/radiosonde_auto_rx/wiki/Configuration-Settings#payload-summary-output
-#   By default these messages are emitted on port 55672, but this can be changed.
-#
-#   In this example I use a UDPListener object (ripped from the horus_utils repository) to listen for UDP packets in a thread,
-#   and pass packets that have a 'PAYLOAD_SUMMARY' type field to a callback, where they are printed.
-#   
-
-import datetime
+import asyncio
 import json
-import pprint
-import socket
-import time
 import traceback
-from threading import Thread
 
 
-class UDPListener(object):
-    ''' UDP Broadcast Packet Listener 
-    Listens for Horus UDP broadcast packets, and passes them onto a callback function
-    '''
+class AsyncUDPListener:
+    """
+    Asynchronous UDP Broadcast Packet Listener.
+    Listens for Horus UDP broadcast packets and passes them to a callback function.
+    """
 
-    def __init__(self,
-        callback=None,
-        summary_callback = None,
-        gps_callback = None,
-        port=55673):
-
+    def __init__(self, callback=None, port=55673):
+        """
+        Initialize the UDP listener.
+        :param callback: Function to process received packets.
+        :param port: UDP port to listen on.
+        """
         self.udp_port = port
         self.callback = callback
+        self.running = False
 
-        self.listener_thread = None
-        self.s = None
-        self.udp_listener_running = False
-
-
-    def handle_udp_packet(self, packet):
-        ''' Process a received UDP packet '''
+    async def handle_packet(self, data, addr):
+        """
+        Handle an incoming UDP packet, parse it, and call the callback if valid.
+        :param data: Raw packet data.
+        :param addr: Address of the sender.
+        """
         try:
-            # The packet should contain a JSON blob. Attempt to parse it in.
-            packet_dict = json.loads(packet)
-
-            # This example only passes on Payload Summary packets, which have the type 'PAYLOAD_SUMMARY'
-            # For more information on other packet types that are used, refer to:
-            # https://github.com/projecthorus/horus_utils/wiki/5.-UDP-Broadcast-Messages
-            if packet_dict['type'] == 'PAYLOAD_SUMMARY':
-                if self.callback is not None:
-                    self.callback(packet_dict)
-
+            # Parse JSON data
+            packet_dict = json.loads(data.decode())
+            if packet_dict.get('type') == 'PAYLOAD_SUMMARY':
+                if self.callback:
+                    await self.callback(packet_dict)  # Run callback
         except Exception as e:
-            print("Could not parse packet: %s" % str(e))
+            print(f"Error handling packet from {addr}: {e}")
             traceback.print_exc()
 
+    async def listen(self):
+        """
+        Start listening for incoming UDP packets asynchronously.
+        """
+        print(f"Listening for UDP packets on port {self.udp_port}...")
+        self.running = True
 
-    def udp_rx_thread(self):
-        ''' Listen for Broadcast UDP packets '''
+        # Create the UDP server
+        loop = asyncio.get_running_loop()
+        transport, protocol = await loop.create_datagram_endpoint(
+            lambda: _UDPProtocol(self.handle_packet),
+            local_addr=('0.0.0.0', self.udp_port),
+        )
 
-        self.s = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
-        self.s.settimeout(1)
-        self.s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         try:
-            self.s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
-        except:
+            while self.running:
+                await asyncio.sleep(0.1)  # Prevent busy looping
+        except asyncio.CancelledError:
             pass
-        self.s.bind(('',self.udp_port))
-        print("Started UDP Listener Thread on port %d." % self.udp_port)
-        self.udp_listener_running = True
+        finally:
+            print("Closing UDP listener...")
+            transport.close()
 
-        # Loop and continue to receive UDP packets.
-        while self.udp_listener_running:
-            try:
-                # Block until a packet is received, or we timeout.
-                m = self.s.recvfrom(1024)
-            except socket.timeout:
-                # Timeout! Continue around the loop...
-                m = None
-            except:
-                # If we don't timeout then something has broken with the socket.
-                traceback.print_exc()
-            
-            # If we hae packet data, handle it.
-            if m != None:
-                self.handle_udp_packet(m[0])
-        
-        print("Closing UDP Listener")
-        self.s.close()
+    def stop(self):
+        """Stop the listener."""
+        self.running = False
 
 
-    def start(self):
-        if self.listener_thread is None:
-            self.listener_thread = Thread(target=self.udp_rx_thread)
-            self.listener_thread.start()
+class _UDPProtocol(asyncio.DatagramProtocol):
+    """
+    Internal protocol class to handle UDP packets.
+    """
 
+    def __init__(self, packet_handler):
+        """
+        Initialize the protocol.
+        :param packet_handler: Coroutine function to handle received packets.
+        """
+        self.packet_handler = packet_handler
 
-    def close(self):
-        self.udp_listener_running = False
-        self.listener_thread.join()
+    def datagram_received(self, data, addr):
+        """Handle received UDP packets."""
+        asyncio.create_task(self.packet_handler(data, addr))
