@@ -1,39 +1,36 @@
-from udp_listener import UDPListener
+from async_udp_listener import AsyncUDPListener
 from settings import Settings
-from radiosonde_payload import RadiosondePayload
 from utils import Utils
 import math
-import time
+import asyncio
 
 
-class RadiosondeAutoRxListener:
+class AsyncRadiosondeAutoRxListener:
     def __init__(self):
         self._settings = Settings.load_settings()
         self._last_altitude = 0
         self._sondes = {}
 
 
-    def start(self):
+    async def start(self):
         # Instantiate the UDP listener.
-        udp_rx = UDPListener(
-            port=self._settings.udp_broadcast.listen_port,
-            callback = self.handle_payload_summary
-            )
-        # and start it
-        udp_rx.start()
+        udp_listener = AsyncUDPListener(callback=self.handle_payload_summary, port=55673)
+
+        # Start the UDP listener
+        listener_task = asyncio.create_task(udp_listener.listen())
+
 
         # From here, everything happens in the callback function above.
         try:
-            while True:
-                time.sleep(1)
+            await listener_task
         # Catch CTRL+C nicely.
         except KeyboardInterrupt:
             # Close UDP listener.
-            udp_rx.close()
+            udp_listener.close()
             print("Closing.")
 
 
-    def handle_payload_summary(self, packet: dict):
+    async def handle_payload_summary(self, packet: dict):
         ''' Handle a 'Payload Summary' UDP broadcast message, supplied as a dict. '''
         model = RadiosondePayload(**packet)
 

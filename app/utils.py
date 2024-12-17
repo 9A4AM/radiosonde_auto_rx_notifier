@@ -17,7 +17,7 @@ class Utils:
         return distance <= range_km
 
     @staticmethod
-    def send_notification(packet: RadiosondePayload):
+    async def send_notification(packet: RadiosondePayload):
         settings = Settings.load_settings()
 
         apobj = apprise.Apprise()
