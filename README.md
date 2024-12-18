@@ -25,9 +25,9 @@ Example structure of the `config.yml`:
 
 ```yaml  
 listener_location:  
-  altitude: 210                  # Altitude of the listener's location in meters  
-  latitude: 46.2590563           # Latitude of the listener  
-  longitude: 13.1551694          # Longitude of the listener  
+  altitude: 0.0                  # Altitude of the listener's location in meters  
+  latitude: 0.0           # Latitude of the listener  
+  longitude: 0.0          # Longitude of the listener  
 
 notification_thresholds:  
   altitude_meters: 1000.0        # Notify when radiosondes are below this altitude (meters)  
