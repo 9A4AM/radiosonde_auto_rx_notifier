@@ -37,16 +37,18 @@ class Utils:
 The radiosonde is nearing its landing site! Based on the latest telemetry data, here is a detailed update:
 
 📍 Landing Prediction:
-Location: {packet.latitude}, {packet.longitude}
-Last Known Altitude: {packet.altitude} meters
-Distance from Listener: {round(Utils.get_distance(settings.listener_location.location_tuple, packet.location_tuple), 2)} km
+📍 **Landing Prediction**:
+- **Location**: {packet.latitude}, {packet.longitude}
+- **Last Known Altitude**: {packet.altitude} meters
+- **Distance from Listener**: {round(Utils.get_distance(settings.listener_location.location_tuple, packet.location_tuple), 2)} km
 
-📊 Radiosonde Details:
-Callsign: {packet.callsign}
-Model: {packet.model}
-Frequency: {packet.freq}
-Battery: {packet.batt}
-Last Known Speed: {packet.vel_v} m/s
+📊 **Radiosonde Details**:
+- **Callsign**: {packet.callsign}
+- **Model**: {packet.model}
+- **Frequency**: {packet.freq}
+- **Battery**: {packet.batt} V
+- **Last Known Speed**: {packet.vel_v} m/s
+
 
 
 Click the link to view the location on Google Maps: [Google Maps](https://www.google.com/maps?q={packet.latitude},{packet.longitude})
@@ -75,7 +77,7 @@ The radiosonde is within {settings.notification_thresholds.distance_km} km and b
 - **Callsign**: {packet.callsign}
 - **Model**: {packet.model}
 - **Frequency**: {packet.freq}
-- **Battery**: {packet.batt}
+- **Battery**: {packet.batt} V
 - **Last Known Speed**: {packet.vel_v} m/s
 
 Click the link to view the location on Google Maps: [Google Maps](https://www.google.com/maps?q={packet.latitude},{packet.longitude})
