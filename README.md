@@ -25,13 +25,14 @@ Example structure of the `config.yml`:
 
 ```yaml  
 listener_location:  
-  altitude: 0.0                  # Altitude of the listener's location in meters  
+  altitude: 0.0           # Altitude of the listener's location in meters  
   latitude: 0.0           # Latitude of the listener  
   longitude: 0.0          # Longitude of the listener  
 
 notification_thresholds:  
-  altitude_meters: 1000.0        # Notify when radiosondes are below this altitude (meters)  
-  distance_km: 20.0              # Notify when radiosondes are within this distance (kilometers)  
+  altitude_meters: 1000.0           # Notify when radiosondes are below this altitude (meters)  
+  distance_km: 20.0                 # Notify when radiosondes are within this distance (kilometers)  
+  landing_point_timeout_minutes: 5  # Specifies the duration (in minutes) of inactivity after which the landing point is sent. 0 = Disabled
 
 notifications:  
   services:  
@@ -95,7 +96,7 @@ services:
     devices:
       - /dev/bus/usb
     image: ghcr.io/projecthorus/radiosonde_auto_rx:latest
-    network: host
+    network_mode: host
     restart: always
     volumes:
       - ~/radiosonde_auto_rx/station.cfg:/opt/auto_rx/station.cfg:ro
