@@ -27,7 +27,7 @@ class Utils:
                 apobj.add(service.url)
 
          # notify all of the services loaded into our Apprise object.
-        await asyncio.to_thread(apobj.notify, body=message_body, title='🚨 Radiosonde Alert 🚨')
+        await apobj.async_notify(body=message_body, title=title)
 
     @staticmethod
     async def send_landing_notification(packet: RadiosondePayload):
@@ -57,7 +57,6 @@ Click the link to view the location on Google Maps: [Google Maps](https://www.go
 If you're planning retrieval, ensure you have the necessary equipment and safety precautions. The area might be remote or challenging to access.
 """
 
-        # notify all of the services loaded into our Apprise object.
         await Utils.send_notification(message_body, '🚨 Radiosonde Alert 🚨')
 
 
