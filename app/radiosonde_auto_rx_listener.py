@@ -96,8 +96,9 @@ class AsyncRadiosondeAutoRxListener:
                 last_updated = sonde_data.get('last_update')
                 landing_notify = sonde_data.get("landing_notify")
                 model = sonde_data.get("data")
+                timeout = self._settings.notification_thresholds.landing_point_timeout_minutes
 
-                if last_updated and (current_time - last_updated) > timedelta(minutes=self._settings.notification_thresholds.landing_point_timeout_minutes) \
+                if last_updated and timeout > 0 and (current_time - last_updated) > timedelta(minutes=timeout) \
                     and not landing_notify and self._is_below_threshold(model) and Utils.is_within_range(home, model.location_tuple, range_km):
                     await Utils.send_landing_notification(model)
                     sonde_data['landing_notify'] = True
