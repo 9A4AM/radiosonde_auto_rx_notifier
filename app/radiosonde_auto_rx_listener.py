@@ -2,9 +2,9 @@ from udp_listener import AsyncUDPListener
 from settings import Settings
 from radiosonde_payload import RadiosondePayload
 from utils import Utils
-import math
 from datetime import datetime, UTC, timedelta
 import asyncio
+import aiohttp
 import logging
 
 
@@ -23,8 +23,60 @@ class AsyncRadiosondeAutoRxListener:
 
 
     async def start(self):
+        logger.info("Starting AsyncRadiosondeAutoRxListener...")
+        if self._settings.fetch_data:
+            logger.info("Fetching data from online sites.")
+            await self._listen_web()
+        else:
+            logger.info("Fetching data from local udp.")
+            await self._listen_udp()
+
+    async def _listen_web(self):
+        """Uses async requests to fetch data from online sources."""
+        url = f'https://s1.radiosondy.info/export/export_map.php?live_map=1&_={int(datetime.now().timestamp() * 1000)}'
+        
+        headers = {
+            'Accept': 'application/json, text/javascript, */*; q=0.01',
+            'Accept-Language': 'it-IT,it;q=0.9,en-US;q=0.8,en;q=0.7',
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
+            'Pragma': 'no-cache',
+            'Referer': 'https://s1.radiosondy.info/',
+            'Sec-Fetch-Dest': 'empty',
+            'Sec-Fetch-Mode': 'cors',
+            'Sec-Fetch-Site': 'same-origin',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+            'X-Requested-With': 'XMLHttpRequest',
+            'sec-ch-ua': '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"',
+            'sec-ch-ua-mobile': '?0',
+            'sec-ch-ua-platform': '"Windows"'
+        }
+        logger.info("Fetching data from online source now..")
+        while True:
+            logger.info("---------------------------------------\n   [READING DATA FROM ONLINE SOURCE]   \n---------------------------------------")
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url, headers=headers) as response:
+                    if response.status != 200:
+                        logger.error(f"Failed to fetch data from online source. Status code: {response.status}")
+                        await asyncio.sleep(60)
+                        continue
+                    data = await response.json()
+                    if "features" in data:
+                        for feature in data["features"]:
+                            if "geometry" in feature and feature["geometry"]["type"] == "Point":
+                                coords = (feature["geometry"]["coordinates"][1],feature["geometry"]["coordinates"][0])
+                                if Utils.is_within_range(self._settings.listener_location.location_tuple, coords, self._settings.notification_thresholds.distance_km):
+                                    if float(feature["properties"]["climbing"].replace(" m/s", "")) < 1:
+                                        if int(feature["properties"]["altitude"].replace(" m", "")) < self._settings.notification_thresholds.altitude_meters:
+                                            logger.info(f"Radiosonde detected within range and below altitude threshold. Sending notification.")
+                                            await Utils.send_threshold_notification(Utils.map_json_to_radiosonde_payload(feature))
+            logger.info("---------------------------------------")
+            await asyncio.sleep(60)
+
+
+    async def _listen_udp(self):
         # Instantiate the UDP listener.
-        udp_listener = AsyncUDPListener(callback=self.handle_payload_summary, port=55673)
+        udp_listener = AsyncUDPListener(callback=self.handle_payload_summary, port=self._settings.udp_broadcast.listen_port)
 
         # Start the UDP listener
         listener_task = asyncio.create_task(udp_listener.listen())
@@ -42,7 +94,6 @@ class AsyncRadiosondeAutoRxListener:
             # Close UDP listener.
             udp_listener.stop()
             await self.stop_purge_task()
-
 
     async def handle_payload_summary(self, packet: dict):
         ''' Handle a 'Payload Summary' UDP broadcast message, supplied as a dict. '''

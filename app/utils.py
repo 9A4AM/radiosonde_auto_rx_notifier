@@ -30,6 +30,24 @@ class Utils:
         await apobj.async_notify(body=message_body, title=title)
 
     @staticmethod
+    async def map_json_to_radiosonde_payload(json_payload: dict):
+        """Mapp 
+            {'type': 'Feature', 'geometry': {'type': 'Point', 'coordinates': [1.1515, 43.0685, 8021]}, 'properties': {'id': 'MEA901464', 'type': 'M20', 'startplace': 'Aire Sur Adour\t(FR)', 'frequency': '404.00 MHz', 'report': '2024-12-20 10:34:54z', 'speed': '78 km/h', 'course': '158 °', 'climbing': '-10.0 m/s', 'altitude': '8021 m', 'latitude': '43.0685', 'longitude': '1.1515', 'icon': 'sondeIcon'}}
+            to a RadiosondePayload object
+        """
+        return RadiosondePayload(
+            callsign=json_payload["properties"]["id"],
+            model=json_payload["properties"]["type"],
+            freq=json_payload["properties"]["frequency"],
+            batt=-1,
+            vel_v=json_payload["properties"]["climbing"],
+            vel_h=json_payload["properties"]["speed"],
+            altitude=json_payload["properties"]["altitude"],
+            latitude=json_payload["geometry"]["coordinates"][1],
+            longitude=json_payload["geometry"]["coordinates"][0]
+        )
+
+    @staticmethod
     async def send_landing_notification(packet: RadiosondePayload):
         settings = Settings.load_settings()
 

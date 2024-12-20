@@ -13,6 +13,7 @@ class Settings(BaseModel):
     listener_location: ListenerLocation
     notification_thresholds: NotificationThresholds
     udp_broadcast: UDPBroadcast
+    fetch_data: bool = Field(default=True)
     notifications: Notifications
 
     @classmethod
@@ -46,6 +47,7 @@ class Settings(BaseModel):
                 "enabled": True,
                 "listen_port": 55673
             },
+            "fetch_data": True,
             "notifications": {
                 "services": [
                     {
