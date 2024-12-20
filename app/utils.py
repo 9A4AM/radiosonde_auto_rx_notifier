@@ -38,13 +38,13 @@ class Utils:
         return RadiosondePayload(
             callsign=json_payload["properties"]["id"],
             model=json_payload["properties"]["type"],
-            freq=json_payload["properties"]["frequency"],
+            freq=float(json_payload["properties"]["frequency"].replace(" MHz", "")),
             batt=-1,
-            vel_v=json_payload["properties"]["climbing"],
-            vel_h=json_payload["properties"]["speed"],
-            altitude=json_payload["properties"]["altitude"],
-            latitude=json_payload["geometry"]["coordinates"][1],
-            longitude=json_payload["geometry"]["coordinates"][0],
+            vel_v=float(json_payload["properties"]["climbing"].replace(" m/s", "")),
+            vel_h=float(json_payload["properties"]["speed"].replace(" km/h", "")),
+            altitude=int(json_payload["properties"]["altitude"].replace(" m", "")),
+            latitude=float(json_payload["properties"]["latitude"]),
+            longitude=float(json_payload["properties"]["longitude"]),
         )
 
     @staticmethod

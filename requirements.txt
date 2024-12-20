@@ -17,4 +17,3 @@ requests-oauthlib==2.0.0
 typing_extensions==4.12.2
 urllib3==2.2.3
 aiohttp==3.11.11
-datetime==5.5

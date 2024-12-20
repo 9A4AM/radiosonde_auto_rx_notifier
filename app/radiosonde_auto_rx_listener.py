@@ -23,7 +23,7 @@ class AsyncRadiosondeAutoRxListener:
 
     async def start(self):
         logger.info("Starting AsyncRadiosondeAutoRxListener...")
-        if self._settings.fetch_data:
+        if self._settings.fetch_from_online:
             logger.info("Fetching data from online sites.")
             await self._listen_web()
         else:
@@ -32,29 +32,16 @@ class AsyncRadiosondeAutoRxListener:
 
     async def _listen_web(self):
         """Uses async requests to fetch data from online sources."""
-        url = f"https://s1.radiosondy.info/export/export_map.php?live_map=1&_={int(datetime.now().timestamp() * 1000)}"
 
         headers = {
-            "Accept": "application/json, text/javascript, */*; q=0.01",
-            "Accept-Language": "it-IT,it;q=0.9,en-US;q=0.8,en;q=0.7",
-            "Cache-Control": "no-cache",
-            "Connection": "keep-alive",
-            "Pragma": "no-cache",
-            "Referer": "https://s1.radiosondy.info/",
-            "Sec-Fetch-Dest": "empty",
-            "Sec-Fetch-Mode": "cors",
-            "Sec-Fetch-Site": "same-origin",
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
-            "X-Requested-With": "XMLHttpRequest",
-            "sec-ch-ua": '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"',
-            "sec-ch-ua-mobile": "?0",
-            "sec-ch-ua-platform": '"Windows"',
         }
         logger.info("Fetching data from online source now..")
         while True:
             logger.info(
                 "---------------------------------------\n   [READING DATA FROM ONLINE SOURCE]   \n---------------------------------------"
             )
+            url = f"https://s1.radiosondy.info/export/export_map.php?live_map=1&_={int(datetime.now().timestamp() * 1000)}"
             async with aiohttp.ClientSession() as session:
                 async with session.get(url, headers=headers) as response:
                     if response.status != 200:
@@ -71,8 +58,8 @@ class AsyncRadiosondeAutoRxListener:
                                 and feature["geometry"]["type"] == "Point"
                             ):
                                 coords = (
-                                    feature["geometry"]["coordinates"][1],
-                                    feature["geometry"]["coordinates"][0],
+                                    float(feature["properties"]["latitude"]),
+                                    float(feature["properties"]["longitude"]),
                                 )
                                 if Utils.is_within_range(
                                     self._settings.listener_location.location_tuple,

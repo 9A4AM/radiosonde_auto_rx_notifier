@@ -13,7 +13,7 @@ class Settings(BaseModel):
     listener_location: ListenerLocation
     notification_thresholds: NotificationThresholds
     udp_broadcast: UDPBroadcast
-    fetch_data: bool = Field(default=True)
+    fetch_from_online: bool = Field(default=True)
     notifications: Notifications
 
     @classmethod
@@ -37,7 +37,7 @@ class Settings(BaseModel):
             "listener_location": {"latitude": 0, "longitude": 0, "altitude": 0},
             "notification_thresholds": {"distance_km": 20, "altitude_meters": 1000},
             "udp_broadcast": {"enabled": True, "listen_port": 55673},
-            "fetch_data": True,
+            "fetch_from_online": True,
             "notifications": {"services": [{"url": "", "enabled": True}]},
         }
 
