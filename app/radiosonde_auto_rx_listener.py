@@ -83,13 +83,40 @@ class AsyncRadiosondeAutoRxListener:
                                             < self._settings.notification_thresholds.altitude_meters
                                         ):
                                             logger.info(
-                                                f"Radiosonde detected within range and below altitude threshold. Sending notification."
+                                                f"Radiosonde detected within range and below altitude threshold."
                                             )
-                                            await Utils.send_threshold_notification(
-                                                Utils.map_json_to_radiosonde_payload(
-                                                    feature
+                                            if (
+                                                self._sondes.get(
+                                                    feature["properties"]["id"]
                                                 )
-                                            )
+                                                is None
+                                            ):
+                                                self._sondes[
+                                                    feature["properties"]["id"]
+                                                ] = {
+                                                    "notify": True,
+                                                    "landing_notify": False,
+                                                    "altitude": int(
+                                                        feature["properties"][
+                                                            "altitude"
+                                                        ].replace(" m", "")
+                                                    ),
+                                                    "last_update": datetime.now(UTC),
+                                                    "data": Utils.map_json_to_radiosonde_payload(
+                                                        feature
+                                                    ),
+                                                }
+                                                logger.info(
+                                                    f"New radiosonde detected: {feature['properties']['id']}. Sending notification."
+                                                )
+
+                                                await Utils.send_threshold_notification(
+                                                    Utils.map_json_to_radiosonde_payload(
+                                                        feature
+                                                    )
+                                                )
+
+            self._purge_task = asyncio.create_task(self.purge_old_sondes())
             logger.info("---------------------------------------")
             await asyncio.sleep(60)
 
