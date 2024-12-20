@@ -24,7 +24,7 @@ class Settings(BaseModel):
             settings = cls.get_default_settings()
 
             with open(settings_file_path, "w") as settings_file:
-                dump(settings.model_dump(mode='json'), settings_file, indent=2)
+                dump(settings.model_dump(mode="json"), settings_file, indent=2)
 
             return settings
 
@@ -34,28 +34,11 @@ class Settings(BaseModel):
     @classmethod
     def get_default_settings(cls):
         data = {
-            "listener_location": {
-                "latitude": 0,
-                "longitude": 0,
-                "altitude": 0
-            },
-            "notification_thresholds": {
-                "distance_km": 20,
-                "altitude_meters": 1000
-            },
-            "udp_broadcast": {
-                "enabled": True,
-                "listen_port": 55673
-            },
+            "listener_location": {"latitude": 0, "longitude": 0, "altitude": 0},
+            "notification_thresholds": {"distance_km": 20, "altitude_meters": 1000},
+            "udp_broadcast": {"enabled": True, "listen_port": 55673},
             "fetch_data": True,
-            "notifications": {
-                "services": [
-                    {
-                        "url": "",
-                        "enabled": True
-                    }
-                ]
-            }
+            "notifications": {"services": [{"url": "", "enabled": True}]},
         }
 
         return cls(**data)
