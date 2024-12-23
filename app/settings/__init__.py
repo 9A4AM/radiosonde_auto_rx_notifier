@@ -1,13 +1,13 @@
 from pathlib import Path
 
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel
 from yaml import safe_load, dump
 
 from .listener_location import ListenerLocation
-from .notification_thresholds import NotificationThresholds
-from .udp_broadcast import UDPBroadcast
-from .notifications import Notifications
 from .listener_types import ListenerType
+from .notification_thresholds import NotificationThresholds
+from .notifications import Notifications
+from .udp_broadcast import UDPBroadcast
 
 
 class Settings(BaseModel):

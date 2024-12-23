@@ -3,9 +3,10 @@ import logging
 from datetime import datetime, UTC
 
 import aiohttp
-from utils import Utils
-from .listener_base import ListenerBase
 from settings import Settings
+from utils import Utils
+
+from .listener_base import ListenerBase
 
 logger = logging.getLogger(__name__)
 

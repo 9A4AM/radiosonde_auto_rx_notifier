@@ -2,8 +2,9 @@ import asyncio
 import json
 import logging
 
-from .listener_base import ListenerBase
 from settings import Settings
+
+from .listener_base import ListenerBase
 
 logger = logging.getLogger(__name__)
 

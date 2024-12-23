@@ -1,8 +1,8 @@
+from settings.listener_types import ListenerType
+
+from .listener_base import ListenerBase
 from .udp_listener import AsyncUDPListener
 from .web_listener import AsyncWebListener
-from .listener_base import ListenerBase
-
-from settings.listener_types import ListenerType
 
 
 class ListenerRepo:
