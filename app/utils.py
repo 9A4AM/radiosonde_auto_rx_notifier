@@ -1,6 +1,5 @@
 import apprise
 from geopy import distance
-import asyncio
 
 from radiosonde_payload import RadiosondePayload
 from settings import Settings
@@ -8,32 +7,30 @@ from settings import Settings
 
 class Utils:
     @staticmethod
-    def get_distance(base_coordinates, sonde_coordinates):
-        return distance.distance(base_coordinates, sonde_coordinates).km
+    def get_distance(listener_coordinates, radiosonde_coordinates):
+        return distance.distance(listener_coordinates, radiosonde_coordinates).km
 
     @staticmethod
-    def is_within_range(base_coordinates, sonde_coordinates, range_km):
-        distance = Utils.get_distance(base_coordinates, sonde_coordinates)
-        return distance <= range_km
+    def is_within_range(listener_coordinates, radiosonde_coordinates, range_km):
+        distance_from_listener = Utils.get_distance(listener_coordinates, radiosonde_coordinates)
+        return distance_from_listener <= range_km
 
     @staticmethod
     async def send_notification(message_body, title):
         settings = Settings.load_settings()
 
-        apobj = apprise.Apprise()
+        notifier = apprise.Apprise()
 
         for service in settings.notifications.services:
             if service.enabled:
-                apobj.add(service.url)
+                notifier.add(service.url)
 
-        # notify all of the services loaded into our Apprise object.
-        await apobj.async_notify(body=message_body, title=title)
+        # notify all the services loaded into our Apprise object.
+        await notifier.async_notify(body=message_body, title=title)
 
     @staticmethod
     def map_json_to_radiosonde_payload(json_payload: dict):
-        """Mapp
-        {'type': 'Feature', 'geometry': {'type': 'Point', 'coordinates': [1.1515, 43.0685, 8021]}, 'properties': {'id': 'MEA901464', 'type': 'M20', 'startplace': 'Aire Sur Adour\t(FR)', 'frequency': '404.00 MHz', 'report': '2024-12-20 10:34:54z', 'speed': '78 km/h', 'course': '158 °', 'climbing': '-10.0 m/s', 'altitude': '8021 m', 'latitude': '43.0685', 'longitude': '1.1515', 'icon': 'sondeIcon'}}
-        to a RadiosondePayload object
+        """Map "radiosondy" data to a RadiosondePayload object
         """
         return RadiosondePayload(
             callsign=json_payload.get("properties").get("id", ""),

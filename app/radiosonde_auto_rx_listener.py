@@ -1,14 +1,11 @@
-from listeners.udp_listener import AsyncUDPListener
-from listeners.web_listener import AsyncWebListener
-
-from settings import Settings
-from radiosonde_payload import RadiosondePayload
-from utils import Utils
-from datetime import datetime, UTC, timedelta
 import asyncio
-import aiohttp
 import logging
+from datetime import datetime, UTC, timedelta
 
+from listeners.listener_repo import ListenerRepo
+from radiosonde_payload import RadiosondePayload
+from settings import Settings
+from utils import Utils
 
 logger = logging.getLogger(__name__)
 
@@ -18,43 +15,25 @@ class AsyncRadiosondeAutoRxListener:
         self._settings: Settings = Settings.load_settings()
         self._sondes = {}
 
-        self._purge_interval = 60  # How often to check for old sonde data (in seconds)
-        self._purge_task = None  # Task to handle purging of old sonde data
+        self._purge_interval = 60  # How often to check for old radiosonde data (in seconds)
+        self._purge_task = None  # Task to handle purging of old radiosonde data
 
         logger.info("AsyncRadiosondeAutoRxListener initialized.")
 
     async def start(self):
         logger.info("Starting AsyncRadiosondeAutoRxListener...")
-        listener = None
+        listener = ListenerRepo.get_listener(self._settings.listener_type)(self._settings, self.handle_payload_summary)
 
-        if self._settings.fetch_from_online:
-            logger.info("Fetching data from online source.")
-            listener = await self._listen_web()
-        else:
-            logger.info("Fetching data from local udp.")
-            listener = await self._listen_udp()
-        
+        logger.debug(f"Using listener: {listener.__class__.__name__}")
+
         await self._listen(listener)
-
-    async def _listen_web(self):
-        """Uses async requests to fetch data from online sources."""
-        return AsyncWebListener(
-            callback=self.handle_payload_summary
-        )
-
-    async def _listen_udp(self):
-        # Instantiate the UDP listener.
-        return AsyncUDPListener(
-            callback=self.handle_payload_summary,
-            port=self._settings.udp_broadcast.listen_port,
-        )
 
     async def _listen(self, listener):
         # Start the listener
         listener_task = asyncio.create_task(listener.listen())
 
-        # Start the purge task to remove old sonde data
-        self._purge_task = asyncio.create_task(self.purge_old_sondes())
+        # Start the purge task to remove old radiosonde data
+        self._purge_task = asyncio.create_task(self.purge_old_radiosondes())
 
         # From here, everything happens in the callback function above.
         try:
@@ -87,11 +66,11 @@ class AsyncRadiosondeAutoRxListener:
             logger.info(f"New radiosonde detected: {model.callsign}.")
 
         if (
-            self._is_descending(model)
-            and self._is_below_threshold(model)
-            and Utils.is_within_range(home, model.location_tuple, range_km)
-            and not self._sondes[model.callsign]["notify"]
-        ):  # sonde is falling
+                model.is_descending
+                and self._is_below_threshold(model)
+                and Utils.is_within_range(home, model.location_tuple, range_km)
+                and not self._sondes[model.callsign]["notify"]
+        ):  # radiosonde is falling
             logger.debug(
                 f"Radiosonde {model.callsign} is descending, within range, and below altitude threshold. Sending notification."
             )
@@ -99,9 +78,9 @@ class AsyncRadiosondeAutoRxListener:
             self._sondes[model.callsign]["notify"] = True
 
         elif (
-            not self._is_descending(model)
-            or not self._is_below_threshold(model)
-            or not Utils.is_within_range(home, model.location_tuple, range_km)
+                not model.is_descending
+                or not self._is_below_threshold(model)
+                or not Utils.is_within_range(home, model.location_tuple, range_km)
         ):
             if self._sondes[model.callsign]["notify"]:
                 # Reset notify flag if conditions are not met
@@ -114,14 +93,11 @@ class AsyncRadiosondeAutoRxListener:
         self._sondes[model.callsign]["last_update"] = current_time
         self._sondes[model.callsign]["data"] = model
 
-    def _is_descending(self, model: RadiosondePayload):
-        return model.altitude < self._sondes[model.callsign]["altitude"]
-
     def _is_below_threshold(self, model: RadiosondePayload):
         return model.altitude < self._settings.notification_thresholds.altitude_meters
 
-    async def purge_old_sondes(self):
-        """Periodically check and purge sonde data older than 2 hours."""
+    async def purge_old_radiosondes(self):
+        """Periodically check and purge radiosonde data older than 2 hours."""
         range_km = self._settings.notification_thresholds.distance_km
         home = self._settings.listener_location.location_tuple
 
@@ -129,24 +105,24 @@ class AsyncRadiosondeAutoRxListener:
             logger.info("Purging old radiosonde data...")
             current_time = datetime.now(UTC)
 
-            for callsign, sonde_data in self._sondes.items():
-                last_updated = sonde_data.get("last_update")
-                landing_notify = sonde_data.get("landing_notify")
-                model = sonde_data.get("data")
+            for callsign, data in self._sondes.items():
+                last_updated = data.get("last_update")
+                landing_notify = data.get("landing_notify")
+                model = data.get("data")
                 timeout = (
                     self._settings.notification_thresholds.landing_point_timeout_minutes
                 )
 
                 if (
-                    last_updated
-                    and timeout > 0
-                    and (current_time - last_updated) > timedelta(minutes=timeout)
-                    and not landing_notify
-                    and self._is_below_threshold(model)
-                    and Utils.is_within_range(home, model.location_tuple, range_km)
+                        last_updated
+                        and timeout > 0
+                        and (current_time - last_updated) > timedelta(minutes=timeout)
+                        and not landing_notify
+                        and self._is_below_threshold(model)
+                        and Utils.is_within_range(home, model.location_tuple, range_km)
                 ):
                     await Utils.send_landing_notification(model)
-                    sonde_data["landing_notify"] = True
+                    data["landing_notify"] = True
 
                 if last_updated and (current_time - last_updated) > timedelta(hours=2):
                     del self._sondes[callsign]

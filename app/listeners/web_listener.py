@@ -1,29 +1,30 @@
-import aiohttp
-import logging
 import asyncio
+import logging
 from datetime import datetime, UTC
 
+import aiohttp
 from utils import Utils
-
+from .listener_base import ListenerBase
+from settings import Settings
 
 logger = logging.getLogger(__name__)
 
 
-class AsyncWebListener:
+class AsyncWebListener(ListenerBase):
     """
     Asynchronous UDP Broadcast Packet Listener.
     Listens for Horus UDP broadcast packets and passes them to a callback function.
     """
 
-    def __init__(self, callback=None):
+    def __init__(self, settings: Settings, callback=None):
         """
         Initialize the UDP listener.
         :param callback: Function to process received packets.
         """
-        self.callback = callback
+        super().__init__(settings, callback)
         self.running = False
 
-    async def handle_packet(self, data):
+    async def _handle_packet(self, data):
         """
         Handle an incoming UDP packet, parse it, and call the callback if valid.
         :param data: Raw packet data.
@@ -35,8 +36,8 @@ class AsyncWebListener:
                     await self.callback(i)  # Run callback
         except Exception as e:
             logger.exception(e)
-    
-    async def make_request(self):
+
+    async def _make_request(self):
         url = f"https://s1.radiosondy.info/export/export_map.php?live_map=1&_={int(datetime.now(UTC).timestamp() * 1000)}"
 
         headers = {
@@ -51,26 +52,23 @@ class AsyncWebListener:
                     )
                     return
 
-                await self.handle_packet(await response.json())
+                await self._handle_packet(await response.json())
 
     async def listen(self):
-        """
-        Start listening for incoming UDP packets asynchronously.
-        """
         logger.debug(f"Listening for packets...")
         self.running = True
 
-        # Create the UDP server
-        loop = asyncio.get_running_loop()
-
         try:
             while self.running:
-                await self.make_request()
+                await self._make_request()
                 await asyncio.sleep(10)  # Prevent busy looping
         except asyncio.CancelledError:
-            pass
+            logger.info("Listener task cancelled.")
+        except Exception as e:
+            logger.exception(f"Unexpected error in listener", exc_info=e)
         finally:
-            pass
+            self.running = False
+            logger.info("Listener stopped.")
 
     def stop(self):
         """Stop the listener."""

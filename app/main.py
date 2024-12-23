@@ -1,10 +1,8 @@
 import asyncio
-
-from radiosonde_auto_rx_listener import AsyncRadiosondeAutoRxListener
-
-from logger import configure_logger
 from pathlib import Path
 
+from logger import configure_logger
+from radiosonde_auto_rx_listener import AsyncRadiosondeAutoRxListener
 
 if __name__ == "__main__":
     base_path = Path(__file__).parent

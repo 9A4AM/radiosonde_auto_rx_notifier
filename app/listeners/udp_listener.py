@@ -1,29 +1,30 @@
 import asyncio
 import json
-import traceback
 import logging
 
+from .listener_base import ListenerBase
+from settings import Settings
 
 logger = logging.getLogger(__name__)
 
 
-class AsyncUDPListener:
+class AsyncUDPListener(ListenerBase):
     """
     Asynchronous UDP Broadcast Packet Listener.
     Listens for Horus UDP broadcast packets and passes them to a callback function.
     """
 
-    def __init__(self, callback=None, port=55673):
+    def __init__(self, settings: Settings, callback=None):
         """
         Initialize the UDP listener.
         :param callback: Function to process received packets.
         :param port: UDP port to listen on.
         """
-        self.udp_port = port
-        self.callback = callback
+        super().__init__(settings, callback)
+        self.udp_port = self.settings.udp_broadcast.listen_port
         self.running = False
 
-    async def handle_packet(self, data, addr):
+    async def _handle_packet(self, data, addr):
         """
         Handle an incoming UDP packet, parse it, and call the callback if valid.
         :param data: Raw packet data.
@@ -48,7 +49,7 @@ class AsyncUDPListener:
         # Create the UDP server
         loop = asyncio.get_running_loop()
         transport, protocol = await loop.create_datagram_endpoint(
-            lambda: _UDPProtocol(self.handle_packet),
+            lambda: _UDPProtocol(self._handle_packet),
             local_addr=("0.0.0.0", self.udp_port),
         )
 
