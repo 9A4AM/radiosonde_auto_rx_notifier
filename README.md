@@ -29,6 +29,8 @@ listener_location:
   latitude: 0.0           # Latitude of the listener  
   longitude: 0.0          # Longitude of the listener  
 
+listener_type: UDP        # Listener type: UDP, WEB
+
 notification_thresholds:  
   altitude_meters: 1000.0           # Notify when radiosondes are below this altitude (meters)  
   distance_km: 20.0                 # Notify when radiosondes are within this distance (kilometers)  
@@ -44,6 +46,13 @@ udp_broadcast:
   listen_port: 55673             # UDP port to listen on  
 ``` 
 You can modify the `config.yml` to suit your requirements.
+
+#### Listener type
+The `listener_type` setting determines how the application retrieves and processes radiosonde data. 
+Depending on your setup, you can choose between `UDP` and `WEB` listener types to accommodate different operational needs:
+
+- `UDP`: Listens for data broadcasted over UDP from a local radiosonde_auto_rx instance.
+- `WEB`: Fetches radiosonde data from online sources, useful when running a radiosonde_auto_rx instance locally is not possible.
 
 #### Notifications  
 
@@ -64,7 +73,7 @@ For more details on setting up notification URLs, refer to the [Apprise URL Docu
 Ensure Radiosonde Auto-Rx is broadcasting **Payload Summary** packets. Then, run the script:  
 
 ```bash  
-python main.py  
+python app/main.py
 ```  
 
 ### Running with Docker  
@@ -123,7 +132,7 @@ services:
    ```  
 2. Run the service with Docker Compose:  
    ```bash  
-   docker-compose up -d  
+   docker-compose up -d
    ```  
 3. On the first start, the `config.yml` file will be generated in the `data` directory.  
 4. Modify the generated `config.yml` as needed, and restart the service.  

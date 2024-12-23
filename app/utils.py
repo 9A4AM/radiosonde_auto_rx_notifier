@@ -1,6 +1,5 @@
 import apprise
 from geopy import distance
-import asyncio
 
 from radiosonde_payload import RadiosondePayload
 from settings import Settings
@@ -8,26 +7,59 @@ from settings import Settings
 
 class Utils:
     @staticmethod
-    def get_distance(base_coordinates, sonde_coordinates):
-        return distance.distance(base_coordinates, sonde_coordinates).km
+    def get_distance(listener_coordinates, radiosonde_coordinates):
+        return distance.distance(listener_coordinates, radiosonde_coordinates).km
 
     @staticmethod
-    def is_within_range(base_coordinates, sonde_coordinates, range_km):
-        distance = Utils.get_distance(base_coordinates, sonde_coordinates)
-        return distance <= range_km
-    
+    def is_within_range(listener_coordinates, radiosonde_coordinates, range_km):
+        distance_from_listener = Utils.get_distance(listener_coordinates, radiosonde_coordinates)
+        return distance_from_listener <= range_km
+
     @staticmethod
     async def send_notification(message_body, title):
         settings = Settings.load_settings()
 
-        apobj = apprise.Apprise()
+        notifier = apprise.Apprise()
 
         for service in settings.notifications.services:
             if service.enabled:
-                apobj.add(service.url)
+                notifier.add(service.url)
 
-         # notify all of the services loaded into our Apprise object.
-        await apobj.async_notify(body=message_body, title=title)
+        # notify all the services loaded into our Apprise object.
+        await notifier.async_notify(body=message_body, title=title)
+
+    @staticmethod
+    def map_json_to_radiosonde_payload(json_payload: dict):
+        """Map "radiosondy" data to a RadiosondePayload object
+        """
+        return RadiosondePayload(
+            callsign=json_payload.get("properties").get("id", ""),
+            model=json_payload.get("properties").get("type", ""),
+            freq=json_payload.get("properties").get("frequency", "0.0"),
+            batt=-1,
+            vel_v=float(json_payload.get("properties").get("climbing", "0.0").replace(" m/s", "")),
+            vel_h=float(json_payload.get("properties").get("speed", "0.0").replace(" km/h", "")) / 3.6,
+            altitude=int(json_payload.get("properties").get("altitude", "0").replace(" m", "")),
+            latitude=float(json_payload.get("properties").get("latitude", "0.0")),
+            longitude=float(json_payload.get("properties").get("longitude", "0.0")),
+            sdr_device_idx="0",
+            subtype="",
+            ppm=0,
+            f_centre=0.0,
+            fest=[],
+            snr=0,
+            sats=0,
+            pressure=0,
+            humidity=0,
+            bt=0,
+            frame=0,
+            temp=0,
+            time="",
+            heading=float(json_payload.get("properties").get("course", "0.0").replace(" °", "")),
+            speed=float(json_payload.get("properties").get("speed", "0.0").replace(" km/h", "")),
+            station="",
+            type=""
+        )
 
     @staticmethod
     async def send_landing_notification(packet: RadiosondePayload):
@@ -57,8 +89,7 @@ Click the link to view the location on Google Maps: [Google Maps](https://www.go
 If you're planning retrieval, ensure you have the necessary equipment and safety precautions. The area might be remote or challenging to access.
 """
 
-        await Utils.send_notification(message_body, '🚨 Radiosonde Alert 🚨')
-
+        await Utils.send_notification(message_body, "🚨 Radiosonde Alert 🚨")
 
     @staticmethod
     async def send_threshold_notification(packet: RadiosondePayload):
@@ -82,5 +113,4 @@ The radiosonde is within {settings.notification_thresholds.distance_km} km and b
 Click the link to view the location on Google Maps: [Google Maps](https://www.google.com/maps?q={packet.latitude},{packet.longitude})
 """
 
-
-        await Utils.send_notification(message_body, '🚨 Radiosonde Alert 🚨')
+        await Utils.send_notification(message_body, "🚨 Radiosonde Alert 🚨")

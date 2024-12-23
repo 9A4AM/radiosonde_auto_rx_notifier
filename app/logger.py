@@ -1,14 +1,14 @@
 import logging
 from logging import config
+from os import makedirs
 from os.path import exists
-from os import mkdir
 from pathlib import Path
 
 
 def configure_logger(base_path: Path):
     base_path = base_path.parent
     if not exists(base_path / "data/logs/"):
-        mkdir(base_path / "data/logs/")
+        makedirs(base_path / "data/logs/")
 
     # Logging configuration dictionary
     LOGGING_CONFIG = {
@@ -32,7 +32,7 @@ def configure_logger(base_path: Path):
                 "class": "logging.handlers.TimedRotatingFileHandler",
                 "level": "DEBUG",
                 "formatter": "detailed",
-                "filename": base_path / 'data/logs/radiosonde_auto_rx_notifier.log',
+                "filename": base_path / "data/logs/radiosonde_auto_rx_notifier.log",
                 "when": "midnight",
                 "interval": 1,
                 "backupCount": 7,
