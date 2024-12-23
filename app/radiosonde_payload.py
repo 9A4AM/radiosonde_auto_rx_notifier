@@ -34,3 +34,7 @@ class RadiosondePayload(BaseModel):
     @property
     def location_tuple(self):
         return self.latitude, self.longitude
+
+    @property
+    def is_descending(self):
+        return self.vel_v < 0

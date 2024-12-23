@@ -30,21 +30,38 @@ class Utils:
         await apobj.async_notify(body=message_body, title=title)
 
     @staticmethod
-    async def map_json_to_radiosonde_payload(json_payload: dict):
+    def map_json_to_radiosonde_payload(json_payload: dict):
         """Mapp
         {'type': 'Feature', 'geometry': {'type': 'Point', 'coordinates': [1.1515, 43.0685, 8021]}, 'properties': {'id': 'MEA901464', 'type': 'M20', 'startplace': 'Aire Sur Adour\t(FR)', 'frequency': '404.00 MHz', 'report': '2024-12-20 10:34:54z', 'speed': '78 km/h', 'course': '158 °', 'climbing': '-10.0 m/s', 'altitude': '8021 m', 'latitude': '43.0685', 'longitude': '1.1515', 'icon': 'sondeIcon'}}
         to a RadiosondePayload object
         """
         return RadiosondePayload(
-            callsign=json_payload["properties"]["id"],
-            model=json_payload["properties"]["type"],
-            freq=float(json_payload["properties"]["frequency"].replace(" MHz", "")),
+            callsign=json_payload.get("properties").get("id", ""),
+            model=json_payload.get("properties").get("type", ""),
+            freq=json_payload.get("properties").get("frequency", "0.0"),
             batt=-1,
-            vel_v=float(json_payload["properties"]["climbing"].replace(" m/s", "")),
-            vel_h=float(json_payload["properties"]["speed"].replace(" km/h", "")),
-            altitude=int(json_payload["properties"]["altitude"].replace(" m", "")),
-            latitude=float(json_payload["properties"]["latitude"]),
-            longitude=float(json_payload["properties"]["longitude"]),
+            vel_v=float(json_payload.get("properties").get("climbing", "0.0").replace(" m/s", "")),
+            vel_h=float(json_payload.get("properties").get("speed", "0.0").replace(" km/h", "")) / 3.6,
+            altitude=int(json_payload.get("properties").get("altitude", "0").replace(" m", "")),
+            latitude=float(json_payload.get("properties").get("latitude", "0.0")),
+            longitude=float(json_payload.get("properties").get("longitude", "0.0")),
+            sdr_device_idx="0",
+            subtype="",
+            ppm=0,
+            f_centre=0.0,
+            fest=[],
+            snr=0,
+            sats=0,
+            pressure=0,
+            humidity=0,
+            bt=0,
+            frame=0,
+            temp=0,
+            time="",
+            heading=float(json_payload.get("properties").get("course", "0.0").replace(" °", "")),
+            speed=float(json_payload.get("properties").get("speed", "0.0").replace(" km/h", "")),
+            station="",
+            type=""
         )
 
     @staticmethod

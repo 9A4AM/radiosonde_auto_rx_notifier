@@ -1,4 +1,6 @@
-from udp_listener import AsyncUDPListener
+from listeners.udp_listener import AsyncUDPListener
+from listeners.web_listener import AsyncWebListener
+
 from settings import Settings
 from radiosonde_payload import RadiosondePayload
 from utils import Utils
@@ -23,112 +25,33 @@ class AsyncRadiosondeAutoRxListener:
 
     async def start(self):
         logger.info("Starting AsyncRadiosondeAutoRxListener...")
+        listener = None
+
         if self._settings.fetch_from_online:
-            logger.info("Fetching data from online sites.")
-            await self._listen_web()
+            logger.info("Fetching data from online source.")
+            listener = await self._listen_web()
         else:
             logger.info("Fetching data from local udp.")
-            await self._listen_udp()
+            listener = await self._listen_udp()
+        
+        await self._listen(listener)
 
     async def _listen_web(self):
         """Uses async requests to fetch data from online sources."""
-
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
-        }
-        logger.info("Fetching data from online source now..")
-        while True:
-            logger.info(
-                "---------------------------------------\n   [READING DATA FROM ONLINE SOURCE]   \n---------------------------------------"
-            )
-            url = f"https://s1.radiosondy.info/export/export_map.php?live_map=1&_={int(datetime.now().timestamp() * 1000)}"
-            async with aiohttp.ClientSession() as session:
-                async with session.get(url, headers=headers) as response:
-                    if response.status != 200:
-                        logger.error(
-                            f"Failed to fetch data from online source. Status code: {response.status}"
-                        )
-                        await asyncio.sleep(60)
-                        continue
-                    data = await response.json()
-                    if "features" in data:
-                        for feature in data["features"]:
-                            if (
-                                "geometry" in feature
-                                and feature["geometry"]["type"] == "Point"
-                            ):
-                                coords = (
-                                    float(feature["properties"]["latitude"]),
-                                    float(feature["properties"]["longitude"]),
-                                )
-                                if Utils.is_within_range(
-                                    self._settings.listener_location.location_tuple,
-                                    coords,
-                                    self._settings.notification_thresholds.distance_km,
-                                ):
-                                    if (
-                                        float(
-                                            feature["properties"]["climbing"].replace(
-                                                " m/s", ""
-                                            )
-                                        )
-                                        < 1
-                                    ):
-                                        if (
-                                            int(
-                                                feature["properties"][
-                                                    "altitude"
-                                                ].replace(" m", "")
-                                            )
-                                            < self._settings.notification_thresholds.altitude_meters
-                                        ):
-                                            logger.info(
-                                                f"Radiosonde detected within range and below altitude threshold."
-                                            )
-                                            if (
-                                                self._sondes.get(
-                                                    feature["properties"]["id"]
-                                                )
-                                                is None
-                                            ):
-                                                self._sondes[
-                                                    feature["properties"]["id"]
-                                                ] = {
-                                                    "notify": True,
-                                                    "landing_notify": False,
-                                                    "altitude": int(
-                                                        feature["properties"][
-                                                            "altitude"
-                                                        ].replace(" m", "")
-                                                    ),
-                                                    "last_update": datetime.now(UTC),
-                                                    "data": Utils.map_json_to_radiosonde_payload(
-                                                        feature
-                                                    ),
-                                                }
-                                                logger.info(
-                                                    f"New radiosonde detected: {feature['properties']['id']}. Sending notification."
-                                                )
-
-                                                await Utils.send_threshold_notification(
-                                                    Utils.map_json_to_radiosonde_payload(
-                                                        feature
-                                                    )
-                                                )
-
-            self._purge_task = asyncio.create_task(self.purge_old_sondes())
-            logger.info("---------------------------------------")
-            await asyncio.sleep(60)
+        return AsyncWebListener(
+            callback=self.handle_payload_summary
+        )
 
     async def _listen_udp(self):
         # Instantiate the UDP listener.
-        udp_listener = AsyncUDPListener(
+        return AsyncUDPListener(
             callback=self.handle_payload_summary,
             port=self._settings.udp_broadcast.listen_port,
         )
 
-        # Start the UDP listener
-        listener_task = asyncio.create_task(udp_listener.listen())
+    async def _listen(self, listener):
+        # Start the listener
+        listener_task = asyncio.create_task(listener.listen())
 
         # Start the purge task to remove old sonde data
         self._purge_task = asyncio.create_task(self.purge_old_sondes())
@@ -140,13 +63,14 @@ class AsyncRadiosondeAutoRxListener:
         except Exception as e:
             logger.exception(e)
         finally:
-            # Close UDP listener.
-            udp_listener.stop()
+            # Close listener.
+            listener.stop()
             await self.stop_purge_task()
 
-    async def handle_payload_summary(self, packet: dict):
+    async def handle_payload_summary(self, model: dict | RadiosondePayload):
         """Handle a 'Payload Summary' UDP broadcast message, supplied as a dict."""
-        model = RadiosondePayload(**packet)
+        if isinstance(model, dict):
+            model = RadiosondePayload(**model)
 
         current_time = datetime.now(UTC)
         range_km = self._settings.notification_thresholds.distance_km
