@@ -39,7 +39,7 @@ notification_thresholds:
 notifications:  
   services:  
     - enabled: true  
-      url: 'tgram://<bot_token>/<chat_id>'  
+      url: 'tgram://<bot_token>/<chat_id>?format=markdown'  
 
 udp_broadcast:  
   enabled: true                  # Enable UDP broadcast listening  
@@ -63,7 +63,7 @@ Example for Telegram:
 notifications:  
   services:  
     - enabled: true  
-      url: 'tgram://123456789:ABCDefGhIJklMNOpQRStUvWxYZ1234567/987654321'  
+      url: 'tgram://123456789:ABCDefGhIJklMNOpQRStUvWxYZ1234567/987654321?format=markdown'  
 ```  
 
 For more details on setting up notification URLs, refer to the [Apprise URL Documentation](https://github.com/caronc/apprise#urls).  
