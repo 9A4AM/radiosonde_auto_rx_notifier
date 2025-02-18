@@ -17,6 +17,7 @@ class AsyncRadiosondeAutoRxListener:
 
         self._purge_interval = 60  # How often to check for old radiosonde data (in seconds)
         self._purge_task = None  # Task to handle purging of old radiosonde data
+        self._listener_task = None
 
         logger.info("AsyncRadiosondeAutoRxListener initialized.")
 
@@ -30,21 +31,21 @@ class AsyncRadiosondeAutoRxListener:
 
     async def _listen(self, listener):
         # Start the listener
-        listener_task = asyncio.create_task(listener.listen())
+        self._listener_task = asyncio.create_task(listener.listen())
 
         # Start the purge task to remove old radiosonde data
         self._purge_task = asyncio.create_task(self.purge_old_radiosondes())
 
         # From here, everything happens in the callback function above.
         try:
-            await listener_task
+            await self._listener_task
         # Catch CTRL+C nicely.
         except Exception as e:
             logger.exception(e)
         finally:
             # Close listener.
-            listener.stop()
-            await self.stop_purge_task()
+            await self._stop_listener_task()
+            await self._stop_purge_task()
 
     async def handle_payload_summary(self, model: dict | RadiosondePayload):
         """Handle a 'Payload Summary' UDP broadcast message, supplied as a dict."""
@@ -132,7 +133,7 @@ class AsyncRadiosondeAutoRxListener:
 
             await asyncio.sleep(self._purge_interval)  # Wait for the next purge cycle
 
-    async def stop_purge_task(self):
+    async def _stop_purge_task(self):
         """Stop the purge task gracefully."""
         if self._purge_task:
             logger.info("Stopping purge task.")
@@ -141,3 +142,13 @@ class AsyncRadiosondeAutoRxListener:
                 await self._purge_task
             except asyncio.CancelledError:
                 logger.info("Purge task cancelled.")
+
+    async def _stop_listener_task(self):
+        """Stop the purge task gracefully."""
+        if self._listener_task:
+            logger.info("Stopping listener task.")
+            self._listener_task.cancel()  # Gracefully stop the purge task
+            try:
+                await self._listener_task
+            except asyncio.CancelledError:
+                logger.info("Listener task cancelled.")

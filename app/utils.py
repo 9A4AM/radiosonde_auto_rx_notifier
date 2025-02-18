@@ -29,7 +29,39 @@ class Utils:
         await notifier.async_notify(body=message_body, title=title)
 
     @staticmethod
-    def map_json_to_radiosonde_payload(json_payload: dict):
+    def map_mqtt_json_to_radiosonde_payload(json_payload: dict):
+        """Map "sondehub" MQTT data to a RadiosondePayload object"""
+        return RadiosondePayload(
+            callsign=json_payload.get("serial", ""),
+            model=json_payload.get("type", ""),
+            freq=str(json_payload.get("frequency", "0.0")) + "MHz",
+            batt=json_payload.get("batt", -1),
+            vel_v=json_payload.get("vel_v", 0.0),
+            vel_h=json_payload.get("vel_h", 0.0),
+            altitude=int(json_payload.get("alt", 0)),
+            latitude=json_payload.get("lat", 0.0),
+            longitude=json_payload.get("lon", 0.0),
+            sdr_device_idx="0",
+            subtype=json_payload.get("subtype", ""),
+            ppm=0,
+            f_centre=0.0,
+            fest=[],
+            snr=json_payload.get("rssi", 0),
+            sats=json_payload.get("sats", 0),
+            pressure=json_payload.get("pressure", 0),
+            humidity=json_payload.get("humidity", 0),
+            bt=json_payload.get("burst_timer", 0),
+            frame=json_payload.get("frame", 0),
+            temp=json_payload.get("temp", 0),
+            time=json_payload.get("datetime", ""),
+            heading=json_payload.get("heading", 0.0),
+            speed=json_payload.get("vel_h", 0.0),
+            station=json_payload.get("uploader_callsign", ""),
+            type=""
+        )
+
+    @staticmethod
+    def map_web_json_to_radiosonde_payload(json_payload: dict):
         """Map "radiosondy" data to a RadiosondePayload object
         """
         return RadiosondePayload(
