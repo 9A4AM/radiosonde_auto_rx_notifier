@@ -1,7 +1,6 @@
 import asyncio
 import logging
 import json
-from datetime import datetime, UTC
 
 import aiomqtt
 from settings import Settings

@@ -1,4 +1,5 @@
 import apprise
+import asyncio
 from geopy import distance
 
 from radiosonde_payload import RadiosondePayload
@@ -26,7 +27,9 @@ class Utils:
                 notifier.add(service.url)
 
         # notify all the services loaded into our Apprise object.
-        await notifier.async_notify(body=message_body, title=title)
+        asyncio.create_task(
+            notifier.async_notify(body=message_body, title=title)
+        )
 
     @staticmethod
     def map_mqtt_json_to_radiosonde_payload(json_payload: dict):
@@ -113,9 +116,7 @@ The radiosonde is nearing its landing site! Based on the latest telemetry data, 
 - **Battery**: {packet.batt} V
 - **Last Known Speed**: {packet.vel_v} m/s
 
-
-
-Click the link to view the location on Google Maps: [Google Maps](https://www.google.com/maps?q={packet.latitude},{packet.longitude})
+Click the link to view the location on [Google Maps](https://www.google.com/maps?q={packet.latitude},{packet.longitude})
 
 💡 Recommendation:
 If you're planning retrieval, ensure you have the necessary equipment and safety precautions. The area might be remote or challenging to access.
@@ -142,7 +143,7 @@ The radiosonde is within {settings.notification_thresholds.distance_km} km and b
 - **Battery**: {packet.batt} V
 - **Last Known Speed**: {packet.vel_v} m/s
 
-Click the link to view the location on Google Maps: [Google Maps](https://www.google.com/maps?q={packet.latitude},{packet.longitude})
+Click the link to view the location on [Google Maps](https://www.google.com/maps?q={packet.latitude},{packet.longitude})
 """
 
         await Utils.send_notification(message_body, "🚨 Radiosonde Alert 🚨")
