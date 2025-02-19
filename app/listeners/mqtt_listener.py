@@ -42,17 +42,24 @@ class AsyncMqttListener(ListenerBase):
 
     async def listen(self):
         logger.debug(f"Listening for packets...")
+        mqtt_client = aiomqtt.Client(
+            "ws-reader.v2.sondehub.org",
+            port=443,
+            transport="websockets",
+            tls_params=aiomqtt.TLSParameters()
+        )
+        interval = 5
 
         try:
-            async with aiomqtt.Client(
-                "ws-reader.v2.sondehub.org",
-                port=443,
-                transport="websockets",
-                tls_params=aiomqtt.TLSParameters()
-            ) as client:
-                await client.subscribe("sondes/#")
-                async for message in client.messages:
-                    await self._handle_packet(message)
+            while True:
+                try:
+                    async with mqtt_client as client:
+                        await client.subscribe("sondes/#")
+                        async for message in client.messages:
+                            await self._handle_packet(message)
+                except aiomqtt.MqttError:
+                    logger.warning(f"Connection lost; Reconnecting in {interval} seconds ...")
+                    await asyncio.sleep(interval)
         except asyncio.CancelledError:
             logger.info("Listener task cancelled.")
         except Exception as e:
