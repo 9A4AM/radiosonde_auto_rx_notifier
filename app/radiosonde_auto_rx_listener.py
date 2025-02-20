@@ -113,7 +113,8 @@ class AsyncRadiosondeAutoRxListener:
             current_time = datetime.now(UTC)
 
             async with self._lock:
-                for callsign, data in self._sondes.items():
+                for callsign in list(self._sondes.keys()):
+                    data = self._sondes[callsign]
                     last_updated = data.get("last_update")
                     landing_notify = data.get("landing_notify")
                     model = data.get("data")
