@@ -29,7 +29,7 @@ listener_location:
   latitude: 0.0           # Latitude of the listener  
   longitude: 0.0          # Longitude of the listener  
 
-listener_type: UDP        # Listener type: UDP, WEB
+listener_type: UDP        # Listener type: UDP, WEB, MQTT
 
 notification_thresholds:  
   altitude_meters: 1000.0           # Notify when radiosondes are below this altitude (meters)  
@@ -49,12 +49,13 @@ You can modify the `config.yml` to suit your requirements.
 
 #### Listener type
 The `listener_type` setting determines how the application retrieves and processes radiosonde data. 
-Depending on your setup, you can choose between `UDP` and `WEB` listener types to accommodate different operational needs:
+Depending on your setup, you can choose between `UDP`, `WEB` and `MQTT` listener types to accommodate different operational needs:
 
 - `UDP`: Listens for data broadcasted over UDP from a local radiosonde_auto_rx instance.
-- `WEB`: Fetches radiosonde data from online sources, useful when running a radiosonde_auto_rx instance locally is not possible.
+- `WEB`: Fetches radiosonde data from online sources(radiosondy), useful when running a radiosonde_auto_rx instance locally is not possible.
+- `MQTT`: Fetches radiosonde data from online sources(sondehub), useful when running a radiosonde_auto_rx instance locally is not possible.
 
-#### Notifications  
+#### Notifications
 
 Notifications use [Apprise](https://github.com/caronc/apprise). This supports a wide variety of services.  
 
