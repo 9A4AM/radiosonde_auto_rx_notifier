@@ -12,8 +12,3 @@ class ListenerBase(ABC):
     async def listen(self):
         """Start the listener."""
         raise NotImplementedError
-
-    @abstractmethod
-    def stop(self):
-        """Stop the listener."""
-        raise NotImplementedError

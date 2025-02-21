@@ -63,10 +63,6 @@ class AsyncUDPListener(ListenerBase):
             logger.debug("Closing socket connection")
             transport.close()
 
-    def stop(self):
-        """Stop the listener."""
-        self.running = False
-
 
 class _UDPProtocol(asyncio.DatagramProtocol):
     """

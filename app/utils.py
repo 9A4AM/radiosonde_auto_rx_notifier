@@ -1,4 +1,5 @@
 import apprise
+import asyncio
 from geopy import distance
 
 from radiosonde_payload import RadiosondePayload
@@ -26,10 +27,44 @@ class Utils:
                 notifier.add(service.url)
 
         # notify all the services loaded into our Apprise object.
-        await notifier.async_notify(body=message_body, title=title)
+        asyncio.create_task(
+            notifier.async_notify(body=message_body, title=title)
+        )
 
     @staticmethod
-    def map_json_to_radiosonde_payload(json_payload: dict):
+    def map_mqtt_json_to_radiosonde_payload(json_payload: dict):
+        """Map "sondehub" MQTT data to a RadiosondePayload object"""
+        return RadiosondePayload(
+            callsign=json_payload.get("serial", ""),
+            model=json_payload.get("type", ""),
+            freq=str(json_payload.get("frequency", "0.0")) + "MHz",
+            batt=json_payload.get("batt", -1),
+            vel_v=json_payload.get("vel_v", 0.0),
+            vel_h=json_payload.get("vel_h", 0.0),
+            altitude=int(json_payload.get("alt", 0)),
+            latitude=json_payload.get("lat", 0.0),
+            longitude=json_payload.get("lon", 0.0),
+            sdr_device_idx="0",
+            subtype=json_payload.get("subtype", ""),
+            ppm=0,
+            f_centre=0.0,
+            fest=[],
+            snr=json_payload.get("rssi", 0),
+            sats=json_payload.get("sats", 0),
+            pressure=json_payload.get("pressure", 0),
+            humidity=json_payload.get("humidity", 0),
+            bt=json_payload.get("burst_timer", 0),
+            frame=json_payload.get("frame", 0),
+            temp=json_payload.get("temp", 0),
+            time=json_payload.get("datetime", ""),
+            heading=json_payload.get("heading", 0.0),
+            speed=json_payload.get("vel_h", 0.0),
+            station=json_payload.get("uploader_callsign", ""),
+            type=""
+        )
+
+    @staticmethod
+    def map_web_json_to_radiosonde_payload(json_payload: dict):
         """Map "radiosondy" data to a RadiosondePayload object
         """
         return RadiosondePayload(
@@ -81,9 +116,7 @@ The radiosonde is nearing its landing site! Based on the latest telemetry data, 
 - **Battery**: {packet.batt} V
 - **Last Known Speed**: {packet.vel_v} m/s
 
-
-
-Click the link to view the location on Google Maps: [Google Maps](https://www.google.com/maps?q={packet.latitude},{packet.longitude})
+Click the link to view the location on [Google Maps](https://www.google.com/maps?q={packet.latitude},{packet.longitude})
 
 💡 Recommendation:
 If you're planning retrieval, ensure you have the necessary equipment and safety precautions. The area might be remote or challenging to access.
@@ -110,7 +143,7 @@ The radiosonde is within {settings.notification_thresholds.distance_km} km and b
 - **Battery**: {packet.batt} V
 - **Last Known Speed**: {packet.vel_v} m/s
 
-Click the link to view the location on Google Maps: [Google Maps](https://www.google.com/maps?q={packet.latitude},{packet.longitude})
+Click the link to view the location on [Google Maps](https://www.google.com/maps?q={packet.latitude},{packet.longitude})
 """
 
         await Utils.send_notification(message_body, "🚨 Radiosonde Alert 🚨")

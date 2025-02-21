@@ -33,7 +33,7 @@ class AsyncWebListener(ListenerBase):
         try:
             # Parse JSON data
             if self.callback:
-                for i in list(map(Utils.map_json_to_radiosonde_payload, data["features"])):
+                for i in list(map(Utils.map_web_json_to_radiosonde_payload, data["features"])):
                     await self.callback(i)  # Run callback
         except Exception as e:
             logger.exception(e)
@@ -70,7 +70,3 @@ class AsyncWebListener(ListenerBase):
         finally:
             self.running = False
             logger.info("Listener stopped.")
-
-    def stop(self):
-        """Stop the listener."""
-        self.running = False
