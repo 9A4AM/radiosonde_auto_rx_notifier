@@ -103,7 +103,6 @@ class Utils:
         message_body = f"""
 The radiosonde is nearing its landing site! Based on the latest telemetry data, here is a detailed update:
 
-📍 Landing Prediction:
 📍 **Landing Prediction**:
 - **Location**: {packet.latitude}, {packet.longitude}
 - **Last Known Altitude**: {packet.altitude} meters
