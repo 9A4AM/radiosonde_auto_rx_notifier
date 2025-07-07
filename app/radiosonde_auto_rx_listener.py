@@ -14,6 +14,7 @@ class AsyncRadiosondeAutoRxListener:
     def __init__(self):
         self._settings: Settings = Settings.load_settings()
         self._sondes = {}
+        self._last_frame = {}
 
         self._purge_interval = 60  # How often to check for old radiosonde data (in seconds)
         self._purge_task = None  # Task to handle purging of old radiosonde data
@@ -74,6 +75,7 @@ class AsyncRadiosondeAutoRxListener:
                 and self._is_below_threshold(model)
                 and Utils.is_within_range(home, model.location_tuple, range_km)
                 and not self._sondes[model.callsign]["notify"]
+                and model.frame != self._last_frame.get(model.callsign, -1)
         ):  # radiosonde is falling
             logger.debug(
                 f"Radiosonde {model.callsign} is descending, within range, and below altitude threshold. Sending notification."
@@ -83,9 +85,7 @@ class AsyncRadiosondeAutoRxListener:
                 self._sondes[model.callsign]["notify"] = True
 
         elif (
-                not model.is_descending
-                or not self._is_below_threshold(model)
-                or not Utils.is_within_range(home, model.location_tuple, range_km)
+                not Utils.is_within_range(home, model.location_tuple, range_km)
         ):
             if self._sondes[model.callsign]["notify"]:
                 # Reset notify flag if conditions are not met
@@ -99,6 +99,7 @@ class AsyncRadiosondeAutoRxListener:
             self._sondes[model.callsign]["altitude"] = model.altitude
             self._sondes[model.callsign]["last_update"] = current_time
             self._sondes[model.callsign]["data"] = model
+            self._last_frame[model.callsign] = model.frame
 
     def _is_below_threshold(self, model: RadiosondePayload):
         return model.altitude < self._settings.notification_thresholds.altitude_meters
@@ -135,6 +136,7 @@ class AsyncRadiosondeAutoRxListener:
 
                     if last_updated and (current_time - last_updated) > timedelta(hours=2):
                         del self._sondes[callsign]
+                        del self._last_frame[callsign]
                         logger.info(
                             f"Purged radiosonde data for {callsign} (older than 2 hours)."
                         )
